@@ -11,7 +11,7 @@ import type { PlaceDetails } from '@/types'
 import { generatePlan } from '@/services/claudeApi'
 import { fetchCurrentWeather } from '@/services/openWeather'
 import toast from 'react-hot-toast'
-import { MapPin, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 // TODO: Connect Google Places API here
 // import { fetchNearbyPlaces } from '@/services/googlePlaces'
