@@ -1,0 +1,59 @@
+{
+  "hero": {
+    "badge": "AI-Powered",
+    "title": "Discover Istanbul",
+    "subtitle": "Your personalized itinerary ready in seconds."
+  },
+  "hours": {
+    "label": "How much time do you have?",
+    "unit": "hr"
+  },
+  "location": {
+    "label": "Where are you starting from?",
+    "placeholder": "Search a neighbourhood or location... (e.g. Eminönü)"
+  },
+  "companion": {
+    "label": "Who are you with?",
+    "solo": "Solo",
+    "couple": "Partner",
+    "friends": "Friends",
+    "family": "Family",
+    "kids": "With Kids"
+  },
+  "budget": {
+    "label": "What's your budget?",
+    "noLimit": "No limit",
+    "amountPlaceholder": "Enter budget amount"
+  },
+  "visited": {
+    "label": "Have you been to Istanbul before?",
+    "yes": "Yes, I have",
+    "no": "No, first time"
+  },
+  "advanced": {
+    "label": "Advanced Settings",
+    "muzeKarti": "I have a Museum Card",
+    "istanbulKarti": "I have an Istanbulkart",
+    "food": {
+      "label": "Food Preference",
+      "none": "No preference",
+      "helal": "Halal",
+      "vegan": "Vegan",
+      "vegetarian": "Vegetarian"
+    },
+    "walk": {
+      "label": "Walking Preference",
+      "low": "Minimal walking",
+      "medium": "Moderate",
+      "high": "Happy to walk"
+    },
+    "start": {
+      "label": "When do you start your day?",
+      "morning": "Morning",
+      "noon": "Midday",
+      "evening": "Evening"
+    }
+  },
+  "cta": "Pick Places & Build Plan",
+  "locationRequired": "Please enter a starting location to continue."
+}

@@ -1,0 +1,41 @@
+{
+  "common": {
+    "or": "or",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "nav": {
+    "home": "Home",
+    "saved": "Saved Plans"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode"
+  },
+  "auth": {
+    "loginTitle": "Welcome to Gezerce",
+    "loginDesc": "Sign in to save your plans and more.",
+    "google": "Continue with Google",
+    "guest": "Continue as guest",
+    "guestNote": "Plans are not saved in guest mode.",
+    "welcome": "Welcome!",
+    "loginError": "An error occurred while signing in.",
+    "signOut": "Sign out",
+    "signedOut": "Signed out.",
+    "login": "Sign in"
+  },
+  "feedback": {
+    "title": "Send feedback",
+    "desc": "Share your thoughts about Gezerce. No obligation to reply.",
+    "messagePlaceholder": "Write your experience or suggestion...",
+    "emailPlaceholder": "Your email address (optional)",
+    "optional": "Email is optional. Add it if you'd like a response.",
+    "send": "Send",
+    "success": "Thank you for your feedback! 🙏",
+    "error": "An error occurred while sending."
+  }
+}

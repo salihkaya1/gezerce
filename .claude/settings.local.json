@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Salih Kaya/AppData/Local/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(find /c -name node.exe -maxdepth 6)"
+    ]
+  }
+}

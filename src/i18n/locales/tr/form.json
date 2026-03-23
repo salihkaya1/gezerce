@@ -1,0 +1,59 @@
+{
+  "hero": {
+    "badge": "Yapay Zeka Destekli",
+    "title": "Istanbul'u Keşfet",
+    "subtitle": "Kişiselleştirilmiş gezi planın saniyeler içinde hazır."
+  },
+  "hours": {
+    "label": "Kaç saatin var?",
+    "unit": "saat"
+  },
+  "location": {
+    "label": "Nereden başlıyorsun?",
+    "placeholder": "Mahalle veya konum ara... (örn: Eminönü)"
+  },
+  "companion": {
+    "label": "Kimlerle geliyorsun?",
+    "solo": "Yalnız",
+    "couple": "Sevgili",
+    "friends": "Arkadaşlar",
+    "family": "Aile",
+    "kids": "Çocuklu"
+  },
+  "budget": {
+    "label": "Bütçen?",
+    "noLimit": "Sınırım yok",
+    "amountPlaceholder": "Bütçe miktarı gir"
+  },
+  "visited": {
+    "label": "Daha önce Istanbul'a geldin mi?",
+    "yes": "Evet, geldim",
+    "no": "Hayır, ilk kez"
+  },
+  "advanced": {
+    "label": "Gelişmiş Ayarlar",
+    "muzeKarti": "Müze Kartım var",
+    "istanbulKarti": "İstanbulkartım var",
+    "food": {
+      "label": "Yemek Tercihi",
+      "none": "Fark etmez",
+      "helal": "Helal",
+      "vegan": "Vegan",
+      "vegetarian": "Vejetaryen"
+    },
+    "walk": {
+      "label": "Yürüyüş Tercihi",
+      "low": "Az yürürüm",
+      "medium": "Orta",
+      "high": "Çok yürürüm"
+    },
+    "start": {
+      "label": "Güne Ne Zaman Başlıyorsun?",
+      "morning": "Sabah",
+      "noon": "Öğle",
+      "evening": "Akşam"
+    }
+  },
+  "cta": "Mekanları Seç ve Plan Oluştur",
+  "locationRequired": "Devam etmek için başlangıç konumu girin."
+}

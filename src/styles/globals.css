@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-navy: #1A1726;
+    --color-accent: #A78BFA;
+    --color-surface: #F8F7FF;
+    --color-text: #1A1726;
+    --color-text-muted: #6B7280;
+    --color-border: #E9E7F5;
+    --color-card: #FFFFFF;
+  }
+
+  .dark {
+    --color-navy: #1A1726;
+    --color-accent: #A78BFA;
+    --color-surface: #1E1B2E;
+    --color-text: #F3F0FF;
+    --color-text-muted: #A1A1AA;
+    --color-border: #2D2640;
+    --color-card: #2D2640;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-accent/30 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent/60;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl
+           bg-accent text-white font-semibold text-sm
+           hover:bg-accent-dark active:scale-95
+           transition-all duration-150 shadow-sm
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl
+           bg-transparent border border-accent text-accent font-semibold text-sm
+           hover:bg-accent/10 active:scale-95
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+           bg-transparent text-[var(--color-text-muted)] font-medium text-sm
+           hover:bg-accent/10 hover:text-accent active:scale-95
+           transition-all duration-150;
+  }
+
+  .card {
+    @apply bg-[var(--color-card)] rounded-3xl border border-[var(--color-border)]
+           shadow-card hover:shadow-card-hover transition-shadow duration-200;
+  }
+
+  .input-base {
+    @apply w-full rounded-2xl border border-[var(--color-border)]
+           bg-[var(--color-card)] text-[var(--color-text)]
+           px-4 py-3 text-sm font-medium
+           placeholder:text-[var(--color-text-muted)]
+           focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent
+           transition-all duration-150;
+  }
+
+  .chip {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full
+           border border-[var(--color-border)] text-sm font-medium
+           cursor-pointer select-none
+           transition-all duration-150;
+  }
+
+  .chip-active {
+    @apply bg-accent text-white border-accent;
+  }
+
+  .chip-inactive {
+    @apply bg-transparent text-[var(--color-text-muted)] hover:border-accent hover:text-accent;
+  }
+
+  .badge-discount {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+           bg-emerald-500/15 text-emerald-600 dark:text-emerald-400
+           text-xs font-semibold;
+  }
+
+  .badge-open {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+           bg-emerald-500/15 text-emerald-600 dark:text-emerald-400
+           text-xs font-medium;
+  }
+
+  .badge-closed {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+           bg-red-500/15 text-red-500
+           text-xs font-medium;
+  }
+}

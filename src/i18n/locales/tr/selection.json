@@ -1,0 +1,8 @@
+{
+  "title": "Mekanları Seç",
+  "subtitle": "Gitmek istediğin yerleri seç, planını oluşturalım.",
+  "selected": "mekan seçildi",
+  "generate": "Plan Oluştur",
+  "noSelectionError": "En az 1 mekan seçmelisiniz.",
+  "generateError": "Plan oluşturulurken hata oluştu."
+}

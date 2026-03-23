@@ -1,0 +1,23 @@
+{
+  "generating": "Planın hazırlanıyor...",
+  "generatingDesc": "Claude yapay zekası rotanı oluşturuyor. Bu birkaç saniye sürebilir.",
+  "errorTitle": "Plan oluşturulamadı",
+  "back": "Geri",
+  "backHome": "Ana Sayfaya Dön",
+  "stops": "durak",
+  "hours": "saat",
+  "itinerary": "Günlük Program",
+  "share": "Paylaş",
+  "download": "Offline İndir",
+  "save": "Kaydet",
+  "shareCopied": "Bağlantı kopyalandı!",
+  "shareError": "Bağlantı kopyalanamadı.",
+  "offlineSaved": "Plan offline modda erişilebilir!",
+  "offlineError": "Offline kaydedilemedi.",
+  "saved": "Plan kaydedildi!",
+  "saveError": "Kaydedilirken hata oluştu.",
+  "loginRequired": "Kayıtlı planları görmek için giriş yapmalısınız.",
+  "savedPlans": "Kayıtlı Planlar",
+  "noSavedPlans": "Henüz kayıtlı planın yok.",
+  "createPlan": "Yeni Plan Oluştur"
+}

@@ -1,0 +1,41 @@
+{
+  "common": {
+    "or": "veya",
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "retry": "Tekrar dene",
+    "close": "Kapat",
+    "save": "Kaydet",
+    "cancel": "İptal"
+  },
+  "nav": {
+    "home": "Ana Sayfa",
+    "saved": "Kayıtlı Planlar"
+  },
+  "theme": {
+    "light": "Açık tema",
+    "dark": "Koyu tema"
+  },
+  "auth": {
+    "loginTitle": "Gezerce'ye hoş geldin",
+    "loginDesc": "Planlarını kaydetmek ve daha fazlası için giriş yap.",
+    "google": "Google ile devam et",
+    "guest": "Misafir olarak devam et",
+    "guestNote": "Misafir modunda planların kaydedilmez.",
+    "welcome": "Hoş geldin!",
+    "loginError": "Giriş yapılırken bir hata oluştu.",
+    "signOut": "Çıkış yap",
+    "signedOut": "Çıkış yapıldı.",
+    "login": "Giriş yap"
+  },
+  "feedback": {
+    "title": "Geri bildirim gönder",
+    "desc": "Gezerce hakkında düşüncelerinizi paylaşın. Yanıtlamak zorunda değilsiniz.",
+    "messagePlaceholder": "Deneyiminizi veya önerinizi yazın...",
+    "emailPlaceholder": "E-posta adresiniz (isteğe bağlı)",
+    "optional": "E-posta adresi isteğe bağlıdır. Yanıt almak isterseniz ekleyebilirsiniz.",
+    "send": "Gönder",
+    "success": "Geri bildiriminiz için teşekkürler! 🙏",
+    "error": "Gönderilirken bir hata oluştu."
+  }
+}

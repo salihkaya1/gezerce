@@ -1,0 +1,8 @@
+{
+  "title": "Choose Places",
+  "subtitle": "Select the spots you want to visit and we'll build your plan.",
+  "selected": "place(s) selected",
+  "generate": "Build Plan",
+  "noSelectionError": "Please select at least one place.",
+  "generateError": "An error occurred while generating the plan."
+}

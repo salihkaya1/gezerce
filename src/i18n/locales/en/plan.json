@@ -1,0 +1,23 @@
+{
+  "generating": "Building your plan...",
+  "generatingDesc": "Claude AI is crafting your itinerary. This may take a few seconds.",
+  "errorTitle": "Couldn't create plan",
+  "back": "Back",
+  "backHome": "Back to Home",
+  "stops": "stops",
+  "hours": "hours",
+  "itinerary": "Day Plan",
+  "share": "Share",
+  "download": "Save Offline",
+  "save": "Save",
+  "shareCopied": "Link copied!",
+  "shareError": "Couldn't copy link.",
+  "offlineSaved": "Plan saved for offline use!",
+  "offlineError": "Couldn't save offline.",
+  "saved": "Plan saved!",
+  "saveError": "An error occurred while saving.",
+  "loginRequired": "Please sign in to view saved plans.",
+  "savedPlans": "Saved Plans",
+  "noSavedPlans": "No saved plans yet.",
+  "createPlan": "Create a Plan"
+}
