@@ -22,7 +22,6 @@ export default function MapView({ steps }: Props) {
 
     loader.load().then(async () => {
       const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary
-      const { Marker } = await google.maps.importLibrary('marker') as google.maps.MarkerLibrary
 
       const center = {
         lat: steps[0]?.venueLat ?? 41.0082,
@@ -43,9 +42,10 @@ export default function MapView({ steps }: Props) {
         ],
       })
 
+      // Legacy Marker API (importLibrary('marker') içinde Marker yok, AdvancedMarkerElement var)
       steps.forEach((step, i) => {
         if (!step.venueLat || !step.venueLng) return
-        new Marker({
+        new google.maps.Marker({
           position: { lat: step.venueLat, lng: step.venueLng },
           map,
           label: { text: String(i + 1), color: '#fff', fontWeight: 'bold' },
