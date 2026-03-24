@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+/// <reference types="google.maps" />
+import { useEffect, useRef } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 import type { ItineraryStep } from '@/types'
 
@@ -8,27 +9,28 @@ interface Props {
   steps: ItineraryStep[]
 }
 
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
+
 export default function MapView({ steps }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const [hasKey] = useState(!!import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
 
   useEffect(() => {
-    if (!hasKey || !mapRef.current || steps.length === 0) return
+    if (!API_KEY || !mapRef.current || steps.length === 0) return
 
     const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      apiKey: API_KEY,
       version: 'weekly',
     })
 
-    loader.load().then(async () => {
-      const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary
+    loader.load().then(() => {
+      if (!mapRef.current) return
 
       const center = {
         lat: steps[0]?.venueLat ?? 41.0082,
         lng: steps[0]?.venueLng ?? 28.9784,
       }
 
-      const map = new Map(mapRef.current!, {
+      const map = new google.maps.Map(mapRef.current, {
         center,
         zoom: 13,
         disableDefaultUI: true,
@@ -42,7 +44,6 @@ export default function MapView({ steps }: Props) {
         ],
       })
 
-      // Legacy Marker API (importLibrary('marker') içinde Marker yok, AdvancedMarkerElement var)
       steps.forEach((step, i) => {
         if (!step.venueLat || !step.venueLng) return
         new google.maps.Marker({
@@ -52,10 +53,12 @@ export default function MapView({ steps }: Props) {
           title: step.venueName,
         })
       })
-    }).catch(console.error)
-  }, [steps, hasKey])
+    }).catch((err) => {
+      console.error('Google Maps yüklenemedi:', err)
+    })
+  }, [steps])
 
-  if (!hasKey) {
+  if (!API_KEY) {
     return (
       <div className="rounded-3xl overflow-hidden border border-[var(--color-border)] relative h-52 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-navy/80 to-navy-light/60">
         <span className="text-3xl">🗺️</span>
