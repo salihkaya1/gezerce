@@ -44,7 +44,7 @@ export async function fetchCurrentWeather(lat: number, lng: number): Promise<Wea
     description: data.weather[0].description,
     icon: data.weather[0].icon,
     humidity: data.main.humidity,
-    windSpeed: Math.round(data.wind.speed * 3.6), // m/s → km/s
+    windSpeed: Math.round(data.wind.speed * 3.6), // m/s → km/h
     isRainy,
     fetchedAt: new Date().toISOString(),
   }

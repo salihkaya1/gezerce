@@ -15,7 +15,8 @@ import { cachePlan } from '@/utils/offlineCache'
 import { savePlan } from '@/services/firebase/plans'
 
 export default function PlanPage() {
-  const { planId } = useParams<{ planId: string }>()
+  const { planId, shareCode } = useParams<{ planId?: string; shareCode?: string }>()
+  const resolvedId = planId ?? shareCode
   const navigate = useNavigate()
   const { t } = useTranslation('plan')
   const { currentPlan, generating, error } = usePlanStore()
@@ -23,15 +24,15 @@ export default function PlanPage() {
   const { user } = useAuthStore()
 
   useEffect(() => {
-    // Eğer planId varsa ama store'da plan yoksa Firestore'dan yükle
-    if (planId && !currentPlan) {
+    // Eğer resolvedId varsa ama store'da plan yoksa Firestore'dan yükle
+    if (resolvedId && !currentPlan) {
       // TODO: Connect Firebase Firestore here
-      // fetchPlan(planId).then(setPlan)
+      // fetchPlan(resolvedId).then(setPlan)
     }
-  }, [planId, currentPlan])
+  }, [resolvedId, currentPlan])
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/plan/share/${currentPlan?.shareCode ?? planId}`
+    const url = `${window.location.origin}/plan/share/${currentPlan?.shareCode ?? resolvedId}`
     try {
       await navigator.clipboard.writeText(url)
       toast.success(t('shareCopied'))
@@ -41,10 +42,10 @@ export default function PlanPage() {
   }
 
   const handleOfflineDownload = async () => {
-    if (!currentPlan || !planId) return
+    if (!currentPlan || !resolvedId) return
     try {
-      await cachePlan(planId, currentPlan)
-      addCachedPlan(planId)
+      await cachePlan(resolvedId, currentPlan)
+      addCachedPlan(resolvedId)
       toast.success(t('offlineSaved'))
     } catch {
       toast.error(t('offlineError'))
@@ -93,9 +94,16 @@ export default function PlanPage() {
 
   if (!currentPlan) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Spinner size="lg" />
-      </div>
+      <PageWrapper narrow>
+        <div className="flex flex-col items-center gap-4 py-12 text-center">
+          <span className="text-5xl">🗺️</span>
+          <h2 className="font-display text-xl font-bold text-[var(--color-text)]">{t('notFound')}</h2>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('notFoundDesc')}</p>
+          <Button onClick={() => navigate('/')} variant="secondary" icon={<ArrowLeft size={16} />}>
+            {t('backHome')}
+          </Button>
+        </div>
+      </PageWrapper>
     )
   }
 
@@ -128,7 +136,7 @@ export default function PlanPage() {
             </button>
             <button
               onClick={handleOfflineDownload}
-              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${isCached(planId ?? '') ? 'border-accent text-accent' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-accent hover:text-accent'}`}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${isCached(resolvedId ?? '') ? 'border-accent text-accent' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-accent hover:text-accent'}`}
               title={t('download')}
             >
               <Download size={16} />

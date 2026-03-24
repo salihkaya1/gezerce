@@ -36,7 +36,7 @@ export default function WeatherWidget({ weather }: Props) {
             <Droplets size={12} /> %{weather.humidity}
           </span>
           <span className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
-            <Wind size={12} /> {weather.windSpeed} km/s
+            <Wind size={12} /> {weather.windSpeed} km/h
           </span>
         </div>
         {weather.isRainy && (

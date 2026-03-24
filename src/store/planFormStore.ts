@@ -37,9 +37,7 @@ export const usePlanFormStore = create<PlanFormState>((set, get) => ({
   reset: () => set({ ...DEFAULT_FORM_DATA }),
 
   getFormData: (): PlanFormData => {
-    const { setHours, setStartLocation, setCompanionType, setBudget, setVisitedBefore, setAdvanced, setCurrency, reset, getFormData, ...data } = get()
-    void setHours; void setStartLocation; void setCompanionType; void setBudget
-    void setVisitedBefore; void setAdvanced; void setCurrency; void reset; void getFormData
-    return data as PlanFormData
+    const { hours, startLocation, companionType, budget, visitedBefore, advanced } = get()
+    return { hours, startLocation, companionType, budget, visitedBefore, advanced }
   },
 }))

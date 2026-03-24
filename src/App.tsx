@@ -52,8 +52,8 @@ function AppRoutes() {
           <Routes>
             <Route path="/" element={<FormPage />} />
             <Route path="/select" element={<SelectionPage />} />
-            <Route path="/plan/:planId" element={<PlanPage />} />
             <Route path="/plan/share/:shareCode" element={<PlanPage />} />
+            <Route path="/plan/:planId" element={<PlanPage />} />
             <Route path="/saved" element={<SavedPlansPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

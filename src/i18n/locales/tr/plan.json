@@ -19,5 +19,7 @@
   "loginRequired": "Kayıtlı planları görmek için giriş yapmalısınız.",
   "savedPlans": "Kayıtlı Planlar",
   "noSavedPlans": "Henüz kayıtlı planın yok.",
-  "createPlan": "Yeni Plan Oluştur"
+  "createPlan": "Yeni Plan Oluştur",
+  "notFound": "Plan bulunamadı",
+  "notFoundDesc": "Bu plan mevcut değil veya süresi dolmuş olabilir."
 }

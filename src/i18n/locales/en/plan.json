@@ -19,5 +19,7 @@
   "loginRequired": "Please sign in to view saved plans.",
   "savedPlans": "Saved Plans",
   "noSavedPlans": "No saved plans yet.",
-  "createPlan": "Create a Plan"
+  "createPlan": "Create a Plan",
+  "notFound": "Plan not found",
+  "notFoundDesc": "This plan doesn't exist or may have expired."
 }
