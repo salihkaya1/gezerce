@@ -19,6 +19,10 @@ export default function FormPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Konum girilmemişse Sultanahmet'i varsayılan al
+    if (!startLocation) {
+      usePlanFormStore.getState().setStartLocation({ placeId: '', name: 'Sultanahmet', lat: 41.0082, lng: 28.9784 })
+    }
     navigate('/select')
   }
 
@@ -84,15 +88,9 @@ export default function FormPage() {
             size="lg"
             fullWidth
             icon={<MapPin size={18} />}
-            disabled={!startLocation}
-          >
+            >
             {t('cta')}
           </Button>
-          {!startLocation && (
-            <p className="mt-2 text-center text-xs text-[var(--color-text-muted)]">
-              {t('locationRequired')}
-            </p>
-          )}
         </motion.div>
       </form>
     </PageWrapper>

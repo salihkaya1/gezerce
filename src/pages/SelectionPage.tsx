@@ -110,6 +110,8 @@ export default function SelectionPage() {
       const msg = err instanceof Error ? err.message : t('generateError')
       setError(msg)
       toast.error(msg)
+    } finally {
+      setGenerating(false)
     }
   }
 

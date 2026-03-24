@@ -71,7 +71,7 @@ export default function LocationInput() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 200)}
+          onBlur={() => { handleManualSubmit(); setTimeout(() => setFocused(false), 200) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleManualSubmit() } }}
           placeholder={t('location.placeholder')}
           className="input-base pl-9 pr-9"
