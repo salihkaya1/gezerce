@@ -35,14 +35,15 @@ export async function generatePlan(params: GeneratePlanParams): Promise<Plan> {
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     }),
   })
 
   if (!response.ok) {
-    throw new Error(`Claude API hatası: ${response.status}`)
+    const errBody = await response.json().catch(() => ({}))
+    throw new Error(`Claude API hatası: ${response.status} — ${JSON.stringify(errBody)}`)
   }
 
   const data = await response.json()
