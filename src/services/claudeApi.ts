@@ -35,7 +35,7 @@ export async function generatePlan(params: GeneratePlanParams): Promise<Plan> {
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     }),
