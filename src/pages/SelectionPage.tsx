@@ -10,13 +10,11 @@ import { useTranslation } from 'react-i18next'
 import type { PlaceDetails } from '@/types'
 import { generatePlan } from '@/services/claudeApi'
 import { fetchCurrentWeather } from '@/services/openWeather'
+import { fetchNearbyPlaces } from '@/services/googlePlaces'
 import toast from 'react-hot-toast'
 import { Sparkles } from 'lucide-react'
 
-// TODO: Connect Google Places API here
-// import { fetchNearbyPlaces } from '@/services/googlePlaces'
-
-// Demo mekan verisi — Google Places API bağlandığında kaldırılacak
+// Google Places API başarısız olursa fallback
 const DEMO_PLACES: PlaceDetails[] = [
   {
     placeId: 'hagia-sophia', name: 'Ayasofya', address: 'Sultanahmet, Fatih',
@@ -39,7 +37,7 @@ const DEMO_PLACES: PlaceDetails[] = [
     isOpen: true, openingHours: [], photos: [{ url: 'https://images.unsplash.com/photo-1527838832700-5059252407fa?w=400', attribution: '' }], types: ['tourist_attraction'],
   },
   {
-    placeId: 'kapalıcarsı', name: 'Kapalıçarşı', address: 'Fatih',
+    placeId: 'kapalicarsi', name: 'Kapalıçarşı', address: 'Fatih',
     lat: 41.0105, lng: 28.9680, rating: 4.4, userRatingsTotal: 110000,
     isOpen: true, openingHours: [], photos: [{ url: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=400', attribution: '' }], types: ['shopping_mall'],
   },
@@ -62,21 +60,27 @@ export default function SelectionPage() {
     const loadPlaces = async () => {
       setLoadingPlaces(true)
       try {
-        // TODO: Connect Google Places API here
-        // const formData = getFormData()
-        // if (formData.startLocation) {
-        //   const results = await fetchNearbyPlaces(formData.startLocation.lat, formData.startLocation.lng)
-        //   setPlaces(results)
-        // }
-        // Demo veri kullanılıyor
-        await new Promise((r) => setTimeout(r, 600))
+        const formData = getFormData()
+        const lat = formData.startLocation?.lat || 41.0082
+        const lng = formData.startLocation?.lng || 28.9784
+
+        const results = await fetchNearbyPlaces(lat, lng, formData.companionType)
+
+        if (results.length > 0) {
+          setPlaces(results)
+        } else {
+          // API sonuç dönmezse demo veriye fallback
+          setPlaces(DEMO_PLACES)
+        }
+      } catch (err) {
+        console.error('Mekan yükleme hatası:', err)
         setPlaces(DEMO_PLACES)
       } finally {
         setLoadingPlaces(false)
       }
     }
     loadPlaces()
-  }, [setPlaces])
+  }, [setPlaces, getFormData])
 
   const handleGeneratePlan = async () => {
     if (selectedPlaceIds.size === 0) {
@@ -90,7 +94,6 @@ export default function SelectionPage() {
       const selectedPlaces = places.filter((p) => isSelected(p.placeId))
 
       // Hava durumu al
-      // TODO: Connect OpenWeatherMap API here
       let weather = undefined
       try {
         const loc = formData.startLocation
@@ -102,7 +105,6 @@ export default function SelectionPage() {
       }
 
       // Plan üret
-      // TODO: Connect Claude API here
       const plan = await generatePlan({ formData, selectedPlaces, weather })
       setPlan(plan)
       navigate(`/plan/${plan.id}`)

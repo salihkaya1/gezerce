@@ -2,10 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MapPin, Search, Loader2 } from 'lucide-react'
 import { usePlanFormStore } from '@/store'
 import { useTranslation } from 'react-i18next'
-
-// TODO: Connect Google Places API here
-// Bu bileşen şimdilik manuel giriş destekler.
-// Entegrasyon için: import { fetchPlaceSuggestions } from '@/services/googlePlaces'
+import { fetchPlaceSuggestions, fetchPlaceLatLng } from '@/services/googlePlaces'
 
 interface Suggestion {
   placeId: string
@@ -31,10 +28,9 @@ export default function LocationInput() {
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        // TODO: Connect Google Places API here
-        // const results = await fetchPlaceSuggestions(query, 'Istanbul')
-        // setSuggestions(results)
-        // Şimdilik boş döner — API bağlandığında yukarıdaki satırları aç
+        const results = await fetchPlaceSuggestions(query, 'tr')
+        setSuggestions(results)
+      } catch {
         setSuggestions([])
       } finally {
         setLoading(false)
@@ -42,11 +38,19 @@ export default function LocationInput() {
     }, 400)
   }, [query, focused])
 
-  const handleSelect = (s: Suggestion) => {
-    setStartLocation({ placeId: s.placeId, name: s.name, lat: 0, lng: 0 })
+  const handleSelect = async (s: Suggestion) => {
     setQuery(s.name)
     setSuggestions([])
     setFocused(false)
+
+    // Seçilen yerin lat/lng'sini al
+    const coords = await fetchPlaceLatLng(s.placeId)
+    setStartLocation({
+      placeId: s.placeId,
+      name: s.name,
+      lat: coords?.lat ?? 41.0082,
+      lng: coords?.lng ?? 28.9784,
+    })
   }
 
   const handleManualSubmit = () => {
