@@ -51,29 +51,24 @@ function sanitizeStep(raw: Record<string, unknown>, index: number, selectedPlace
 
 export async function generatePlan(params: GeneratePlanParams): Promise<Plan> {
   const prompt = buildPlanPrompt(params)
-  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY
 
-  if (!apiKey) {
+  // Doğrudan Anthropic'e değil, kendi Vercel serverless fonksiyonumuza çağrı yap (CORS sorununu çözer)
+  let response: Response
+  try {
+    response = await fetch('/api/generate-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    })
+  } catch (networkErr) {
+    console.error('Ağ hatası /api/generate-plan:', networkErr)
+    // Ağ hatası olursa demo plana fallback
     return buildDemoPlan(params)
   }
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-
   if (!response.ok) {
     const errBody = await response.json().catch(() => ({}))
+    console.error('generate-plan endpoint hatası:', response.status, errBody)
     throw new Error(`Claude API hatası: ${response.status} — ${JSON.stringify(errBody)}`)
   }
 
