@@ -18,13 +18,23 @@ function getLoader(): Loader {
   return loaderInstance
 }
 
-// Kullanıcı profiline göre aranacak mekan türleri
-const COMPANION_TYPES: Record<CompanionType, string[]> = {
-  sevgili: ['restaurant', 'cafe', 'park', 'art_gallery', 'tourist_attraction'],
-  aile: ['museum', 'park', 'tourist_attraction', 'mosque', 'shopping_mall'],
-  arkadas: ['restaurant', 'cafe', 'tourist_attraction', 'shopping_mall', 'night_club'],
-  cocuklu: ['park', 'aquarium', 'zoo', 'amusement_park', 'museum'],
-  yalniz: ['museum', 'cafe', 'tourist_attraction', 'art_gallery', 'book_store'],
+// ── Kullanıcı profiline göre İZİN VERİLEN kategoriler ──
+// Sadece bu türlere ait mekanlar gösterilir; geri kalanı filtrelenir.
+const ALLOWED_TYPES: Record<CompanionType, Set<string>> = {
+  sevgili: new Set(['restaurant', 'cafe', 'art_gallery', 'museum', 'park', 'tourist_attraction']),
+  aile:    new Set(['museum', 'park', 'tourist_attraction', 'restaurant', 'zoo']),
+  arkadas: new Set(['restaurant', 'cafe', 'night_club', 'tourist_attraction']),
+  cocuklu: new Set(['park', 'zoo', 'amusement_park', 'museum']),
+  yalniz:  new Set(['museum', 'cafe', 'art_gallery', 'park', 'tourist_attraction']),
+}
+
+// Google'a gönderilecek arama türleri (her profil için 3 tane)
+const SEARCH_TYPES: Record<CompanionType, string[]> = {
+  sevgili: ['restaurant', 'cafe', 'tourist_attraction'],
+  aile:    ['museum', 'tourist_attraction', 'zoo'],
+  arkadas: ['restaurant', 'cafe', 'tourist_attraction'],
+  cocuklu: ['park', 'zoo', 'museum'],
+  yalniz:  ['museum', 'cafe', 'tourist_attraction'],
 }
 
 function mapToPlaceDetails(place: google.maps.places.PlaceResult): PlaceDetails {
@@ -49,6 +59,14 @@ function mapToPlaceDetails(place: google.maps.places.PlaceResult): PlaceDetails 
   }
 }
 
+/**
+ * Bir mekanın izin verilen kategoride olup olmadığını kontrol eder.
+ * Mekanın types[] dizisinden en az biri allowedSet içinde olmalı.
+ */
+function isAllowedType(placeTypes: string[], allowedSet: Set<string>): boolean {
+  return placeTypes.some((t) => allowedSet.has(t))
+}
+
 function nearbySearchPromise(
   service: google.maps.places.PlacesService,
   request: google.maps.places.PlaceSearchRequest
@@ -66,6 +84,7 @@ function nearbySearchPromise(
 
 /**
  * Verilen konum etrafındaki mekanları companion type'a göre getirir.
+ * Sadece izin verilen kategorilerdeki mekanlar döner.
  */
 export async function fetchNearbyPlaces(
   lat: number,
@@ -78,10 +97,11 @@ export async function fetchNearbyPlaces(
   await getLoader().load()
 
   const service = new google.maps.places.PlacesService(document.createElement('div'))
-  const types = COMPANION_TYPES[companionType] ?? COMPANION_TYPES.yalniz
+  const searchTypes = SEARCH_TYPES[companionType] ?? SEARCH_TYPES.yalniz
+  const allowedSet = ALLOWED_TYPES[companionType] ?? ALLOWED_TYPES.yalniz
 
-  // İlk 3 türü paralel ara
-  const searches = types.slice(0, 3).map((type) =>
+  // Paralel arama
+  const searches = searchTypes.map((type) =>
     nearbySearchPromise(service, {
       location: { lat, lng },
       radius,
@@ -98,6 +118,11 @@ export async function fetchNearbyPlaces(
     for (const place of results) {
       const id = place.place_id
       if (!id || seenIds.has(id)) continue
+
+      const types = place.types ?? []
+      // ── Kesin filtreleme: izin verilen kategoride değilse ATLA ──
+      if (!isAllowedType(types, allowedSet)) continue
+
       seenIds.add(id)
       allResults.push(mapToPlaceDetails(place))
     }
@@ -137,6 +162,40 @@ export async function fetchPlaceSuggestions(
     name: p.structured_formatting.main_text,
     address: p.description,
   }))
+}
+
+/**
+ * Mekan arama — SelectionPage'deki arama kutusu için.
+ * Text search ile mekan bulur ve detaylarını döner.
+ */
+export async function searchPlaces(
+  query: string,
+  lat: number,
+  lng: number
+): Promise<PlaceDetails[]> {
+  if (!API_KEY || !query.trim()) return []
+
+  await getLoader().load()
+
+  const service = new google.maps.places.PlacesService(document.createElement('div'))
+
+  return new Promise((resolve) => {
+    service.textSearch(
+      {
+        query: `${query} İstanbul`,
+        location: { lat, lng },
+        radius: 10000,
+        language: 'tr',
+      },
+      (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          resolve(results.slice(0, 5).map(mapToPlaceDetails))
+        } else {
+          resolve([])
+        }
+      }
+    )
+  })
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -10,9 +10,9 @@ import { useTranslation } from 'react-i18next'
 import type { PlaceDetails } from '@/types'
 import { generatePlan } from '@/services/claudeApi'
 import { fetchCurrentWeather } from '@/services/openWeather'
-import { fetchNearbyPlaces } from '@/services/googlePlaces'
+import { fetchNearbyPlaces, searchPlaces } from '@/services/googlePlaces'
 import toast from 'react-hot-toast'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Search, Plus, Loader2, X } from 'lucide-react'
 
 // Google Places API başarısız olursa fallback
 const DEMO_PLACES: PlaceDetails[] = [
@@ -51,10 +51,17 @@ const DEMO_PLACES: PlaceDetails[] = [
 export default function SelectionPage() {
   const navigate = useNavigate()
   const { t } = useTranslation('selection')
-  const { places, setPlaces, selectedPlaceIds, togglePlace, isSelected } = useSelectionStore()
+  const { places, setPlaces, addPlace, selectedPlaceIds, togglePlace, isSelected } = useSelectionStore()
   const { getFormData } = usePlanFormStore()
   const { setPlan, setGenerating, setError, generating } = usePlanStore()
   const [loadingPlaces, setLoadingPlaces] = useState(true)
+
+  // ── Manuel arama state ──
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<PlaceDetails[]>([])
+  const [searching, setSearching] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -69,7 +76,6 @@ export default function SelectionPage() {
         if (results.length > 0) {
           setPlaces(results)
         } else {
-          // API sonuç dönmezse demo veriye fallback
           setPlaces(DEMO_PLACES)
         }
       } catch (err) {
@@ -82,6 +88,37 @@ export default function SelectionPage() {
     loadPlaces()
   }, [setPlaces, getFormData])
 
+  // ── Arama debounce ──
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([])
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const formData = getFormData()
+        const lat = formData.startLocation?.lat || 41.0082
+        const lng = formData.startLocation?.lng || 28.9784
+        const results = await searchPlaces(searchQuery, lat, lng)
+        setSearchResults(results)
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 500)
+  }, [searchQuery, getFormData])
+
+  const handleAddPlace = (place: PlaceDetails) => {
+    addPlace(place)
+    toast.success(`${place.name} eklendi`)
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearch(false)
+  }
+
   const handleGeneratePlan = async () => {
     if (selectedPlaceIds.size === 0) {
       toast.error(t('noSelectionError'))
@@ -93,7 +130,6 @@ export default function SelectionPage() {
       const formData = getFormData()
       const selectedPlaces = places.filter((p) => isSelected(p.placeId))
 
-      // Hava durumu al
       let weather = undefined
       try {
         const loc = formData.startLocation
@@ -104,7 +140,6 @@ export default function SelectionPage() {
         // Hava durumu alınamazsa devam et
       }
 
-      // Plan üret
       const plan = await generatePlan({ formData, selectedPlaces, weather })
       setPlan(plan)
       navigate(`/plan/${plan.id}`)
@@ -120,10 +155,82 @@ export default function SelectionPage() {
   return (
     <PageWrapper>
       {/* Başlık */}
-      <div className="mb-5">
-        <h1 className="font-display text-2xl font-bold text-[var(--color-text)]">{t('title')}</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('subtitle')}</p>
+      <div className="mb-5 flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-[var(--color-text)]">{t('title')}</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('subtitle')}</p>
+        </div>
+        <button
+          onClick={() => setShowSearch(!showSearch)}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-accent hover:text-accent transition-colors flex-shrink-0 mt-1"
+          title="Mekan ara ve ekle"
+        >
+          {showSearch ? <X size={16} /> : <Plus size={16} />}
+        </button>
       </div>
+
+      {/* ── Manuel mekan arama kutusu ── */}
+      {showSearch && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mb-4"
+        >
+          <div className="card p-3">
+            <div className="relative">
+              <Search size={15} className="absolute left-3 top-3 text-[var(--color-text-muted)]" />
+              {searching && <Loader2 size={15} className="absolute right-3 top-3 text-accent animate-spin" />}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Mekan adı ara... (örn: Dolmabahçe)"
+                className="input-base pl-9 pr-9 text-sm"
+                autoFocus
+              />
+            </div>
+
+            {/* Arama sonuçları */}
+            {searchResults.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1">
+                {searchResults.map((place) => {
+                  const alreadyAdded = places.some((p) => p.placeId === place.placeId)
+                  return (
+                    <li key={place.placeId}>
+                      <button
+                        type="button"
+                        onClick={() => !alreadyAdded && handleAddPlace(place)}
+                        disabled={alreadyAdded}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-accent/10 transition-colors disabled:opacity-50"
+                      >
+                        {place.photos[0]?.url ? (
+                          <img src={place.photos[0].url} alt="" className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-border)] text-lg flex-shrink-0">🏛️</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--color-text)] truncate">{place.name}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)] truncate">{place.address}</p>
+                        </div>
+                        {alreadyAdded ? (
+                          <span className="text-[10px] text-accent font-semibold flex-shrink-0">Eklendi</span>
+                        ) : (
+                          <Plus size={16} className="text-accent flex-shrink-0" />
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+              <p className="mt-2 text-center text-xs text-[var(--color-text-muted)]">Sonuç bulunamadı</p>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Mekan grid */}
       {loadingPlaces ? (
