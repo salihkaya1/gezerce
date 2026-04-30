@@ -1,22 +1,9 @@
 /// <reference types="google.maps" />
-import { Loader } from '@googlemaps/js-api-loader'
 import type { PlaceDetails } from '@/types'
 import type { CompanionType } from '@/types/form'
+import { getGoogleMapsLoader, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
-
-let loaderInstance: Loader | null = null
-
-function getLoader(): Loader {
-  if (!loaderInstance) {
-    loaderInstance = new Loader({
-      apiKey: API_KEY,
-      version: 'weekly',
-      libraries: ['places'],
-    })
-  }
-  return loaderInstance
-}
+const API_KEY = GOOGLE_MAPS_API_KEY
 
 // ── KARA LİSTE — Bu türlerden biri varsa mekan ASLA gösterilmez ──
 const BLOCKED_TYPES = new Set([
@@ -33,7 +20,7 @@ const BLOCKED_TYPES = new Set([
   'parking', 'transit_station', 'bus_station', 'train_station', 'subway_station',
   'veterinary_care', 'pet_store',
   'school', 'university', 'primary_school', 'secondary_school',
-  'church', 'hindu_temple', 'synagogue', // cami hariç (aile profili için)
+  'church', 'hindu_temple', 'synagogue',
 ])
 
 // ── Profil bazlı İZİN VERİLEN türler ──
@@ -45,7 +32,7 @@ const ALLOWED_TYPES: Record<CompanionType, Set<string>> = {
   yalniz:  new Set(['museum', 'cafe', 'art_gallery', 'park', 'tourist_attraction', 'book_store', 'library']),
 }
 
-// ── Google'a gönderilecek arama türleri — profil başına TÜM türler ──
+// ── Google'a gönderilecek arama türleri ──
 const SEARCH_TYPES: Record<CompanionType, string[]> = {
   sevgili: ['restaurant', 'cafe', 'art_gallery', 'museum', 'park', 'tourist_attraction'],
   aile:    ['museum', 'park', 'tourist_attraction', 'restaurant', 'zoo', 'mosque'],
@@ -72,108 +59,91 @@ function isFamousSpot(name: string): boolean {
   return false
 }
 
-function mapToPlaceDetails(place: google.maps.places.PlaceResult): PlaceDetails {
-  const photos = (place.photos ?? []).slice(0, 3).map((p) => ({
-    url: p.getUrl({ maxWidth: 400, maxHeight: 300 }),
-    attribution: p.html_attributions?.[0] ?? '',
-  }))
-
-  return {
-    placeId: place.place_id ?? '',
-    name: place.name ?? '',
-    address: place.vicinity ?? place.formatted_address ?? '',
-    lat: place.geometry?.location?.lat() ?? 0,
-    lng: place.geometry?.location?.lng() ?? 0,
-    rating: place.rating ?? 0,
-    userRatingsTotal: place.user_ratings_total ?? 0,
-    isOpen: place.opening_hours?.isOpen?.() ?? null,
-    openingHours: place.opening_hours?.weekday_text ?? [],
-    photos,
-    types: place.types ?? [],
-    priceLevel: place.price_level,
-  }
-}
-
-/**
- * Mekanın gösterilmesinin uygun olup olmadığını kontrol eder.
- * 1) Kara listedeki türlerden biri varsa → REDDET
- * 2) İzin verilen türlerden en az biri varsa → KABUL
- */
 function isPlaceAllowed(placeTypes: string[], allowedSet: Set<string>): boolean {
-  // Kara liste kontrolü — biri bile varsa reddet
   if (placeTypes.some((t) => BLOCKED_TYPES.has(t))) return false
-  // Beyaz liste kontrolü — en az biri olmalı
   return placeTypes.some((t) => allowedSet.has(t))
 }
 
-function nearbySearchPromise(
-  service: google.maps.places.PlacesService,
-  request: google.maps.places.PlaceSearchRequest
-): Promise<google.maps.places.PlaceResult[]> {
-  return new Promise((resolve) => {
-    service.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        resolve(results)
-      } else {
-        resolve([])
-      }
-    })
-  })
-}
-
-/**
- * Akıllı sıralama skoru hesaplar.
- *
- * visitedBefore = false (ilk kez): Turistik yerler + yüksek puan öne çıkar
- * visitedBefore = true (tekrar): Yerel/az bilinen yerler öne, meşhurlar alta
- */
 function calculateScore(place: PlaceDetails, visitedBefore: boolean): number {
   let score = 0
-
   const famous = isFamousSpot(place.name)
   const isTouristAttraction = place.types.includes('tourist_attraction')
   const reviewCount = place.userRatingsTotal ?? 0
 
   if (visitedBefore) {
-    // ── Tekrar gelen kullanıcı: yerel yerler öne ──
-    // Meşhur yerler ceza alır
     if (famous) score -= 50
     if (isTouristAttraction && reviewCount > 50000) score -= 30
-
-    // Orta popülerlik bonus (1000-30000 yorum arası = yerel ama kaliteli)
     if (reviewCount >= 1000 && reviewCount <= 30000) score += 20
     if (reviewCount < 5000) score += 10
-
-    // Puan hala önemli ama daha az ağırlıklı
     score += place.rating * 5
   } else {
-    // ── İlk kez gelen kullanıcı: turistik yerler öne ──
     if (famous) score += 30
     if (isTouristAttraction) score += 20
-
-    // Popülerlik bonus
     if (reviewCount > 50000) score += 15
     else if (reviewCount > 10000) score += 10
-
-    // Puan en önemli faktör
     score += place.rating * 10
   }
 
-  // Açık mekan bonus
   if (place.isOpen === true) score += 5
-
-  // Fotoğrafı olan mekan bonus
   if (place.photos.length > 0) score += 3
-
   return score
+}
+
+// ── Yeni Places API kütüphanesini yükler ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getPlacesLib(): Promise<any> {
+  await getGoogleMapsLoader().load()
+  return google.maps.importLibrary('places')
+}
+
+// ── Yeni Place nesnesini PlaceDetails'e dönüştürür ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPlaceToDetails(place: any): PlaceDetails {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const photos = ((place.photos ?? []) as any[]).slice(0, 3).map((p: any) => ({
+    url: typeof p.getURI === 'function' ? p.getURI({ maxWidth: 400, maxHeight: 300 }) : '',
+    attribution: '',
+  }))
+
+  return {
+    placeId: place.id ?? '',
+    name: place.displayName ?? '',
+    address: place.formattedAddress ?? '',
+    lat: place.location?.lat() ?? 0,
+    lng: place.location?.lng() ?? 0,
+    rating: place.rating ?? 0,
+    userRatingsTotal: place.userRatingCount ?? 0,
+    isOpen: place.regularOpeningHours?.isOpen() ?? null,
+    openingHours: place.regularOpeningHours?.weekdayDescriptions ?? [],
+    photos,
+    types: place.types ?? [],
+    priceLevel: undefined,
+  }
+}
+
+// ── Tek tür için yakın mekan araması (yeni API) ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function nearbySearchOne(Place: any, lat: number, lng: number, type: string, radius: number): Promise<any[]> {
+  try {
+    const { places } = await Place.searchNearby({
+      fields: [
+        'id', 'displayName', 'formattedAddress', 'location',
+        'rating', 'userRatingCount', 'photos', 'types', 'regularOpeningHours',
+      ],
+      locationRestriction: { center: { lat, lng }, radius },
+      includedTypes: [type],
+      maxResultCount: 20,
+      language: 'tr',
+    })
+    return places ?? []
+  } catch {
+    return []
+  }
 }
 
 /**
  * Verilen konum etrafındaki mekanları companion type'a göre getirir.
- * - Tüm kategorilerde ayrı ayrı arama yapar
- * - Kara listeye göre filtreler
- * - visitedBefore'a göre akıllı sıralar
- * - En az 30 mekan döndürmeye çalışır
+ * Yeni Places API (Place.searchNearby) kullanır — PlacesService artık yeni müşterilerde çalışmıyor.
  */
 export async function fetchNearbyPlaces(
   lat: number,
@@ -184,70 +154,48 @@ export async function fetchNearbyPlaces(
 ): Promise<PlaceDetails[]> {
   if (!API_KEY) return []
 
-  await getLoader().load()
-
-  const service = new google.maps.places.PlacesService(document.createElement('div'))
+  const placesLib = await getPlacesLib()
+  const Place = placesLib.Place
   const searchTypes = SEARCH_TYPES[companionType] ?? SEARCH_TYPES.yalniz
   const allowedSet = ALLOWED_TYPES[companionType] ?? ALLOWED_TYPES.yalniz
 
   // ── Tüm kategorilerde paralel arama ──
-  const searches = searchTypes.map((type) =>
-    nearbySearchPromise(service, {
-      location: { lat, lng },
-      radius,
-      type: type as string,
-      language: 'tr',
-    })
+  const resultSets = await Promise.all(
+    searchTypes.map((type) => nearbySearchOne(Place, lat, lng, type, radius))
   )
 
-  const resultSets = await Promise.all(searches)
   const seenIds = new Set<string>()
   const allResults: PlaceDetails[] = []
 
   for (const results of resultSets) {
     for (const place of results) {
-      const id = place.place_id
+      const id = place.id
       if (!id || seenIds.has(id)) continue
-
-      const types = place.types ?? []
+      const types: string[] = place.types ?? []
       if (!isPlaceAllowed(types, allowedSet)) continue
-
       seenIds.add(id)
-      allResults.push(mapToPlaceDetails(place))
+      allResults.push(mapPlaceToDetails(place))
     }
   }
 
   // ── Yeterli sonuç yoksa daha geniş yarıçapla tekrar ara ──
   if (allResults.length < 20) {
-    const extraTypes = searchTypes.slice(0, 3)
-    const extraSearches = extraTypes.map((type) =>
-      nearbySearchPromise(service, {
-        location: { lat, lng },
-        radius: radius * 2, // 10km yarıçap
-        type: type as string,
-        language: 'tr',
-      })
+    const extraSets = await Promise.all(
+      searchTypes.slice(0, 3).map((type) => nearbySearchOne(Place, lat, lng, type, radius * 2))
     )
-
-    const extraResults = await Promise.all(extraSearches)
-    for (const results of extraResults) {
+    for (const results of extraSets) {
       for (const place of results) {
-        const id = place.place_id
+        const id = place.id
         if (!id || seenIds.has(id)) continue
-
-        const types = place.types ?? []
+        const types: string[] = place.types ?? []
         if (!isPlaceAllowed(types, allowedSet)) continue
-
         seenIds.add(id)
-        allResults.push(mapToPlaceDetails(place))
+        allResults.push(mapPlaceToDetails(place))
       }
     }
   }
 
-  // ── Akıllı sıralama ──
   allResults.sort((a, b) => calculateScore(b, visitedBefore) - calculateScore(a, visitedBefore))
-
-  // En fazla 36 mekan döndür (6 sütun × 6 satır veya 2×18)
   return allResults.slice(0, 36)
 }
 
@@ -258,7 +206,8 @@ export interface PlaceSuggestion {
 }
 
 /**
- * Konum giriş alanı için autocomplete önerileri
+ * Konum giriş alanı için autocomplete önerileri.
+ * Yeni AutocompleteSuggestion API kullanır.
  */
 export async function fetchPlaceSuggestions(
   input: string,
@@ -266,24 +215,33 @@ export async function fetchPlaceSuggestions(
 ): Promise<PlaceSuggestion[]> {
   if (!API_KEY || !input.trim()) return []
 
-  await getLoader().load()
+  const placesLib = await getPlacesLib()
+  const AutocompleteSuggestion = placesLib.AutocompleteSuggestion
 
-  const service = new google.maps.places.AutocompleteService()
-  const response = await service.getPlacePredictions({
-    input,
-    componentRestrictions: { country: region },
-    types: ['geocode', 'establishment'],
-  })
+  if (!AutocompleteSuggestion) return []
 
-  return response.predictions.map((p) => ({
-    placeId: p.place_id,
-    name: p.structured_formatting.main_text,
-    address: p.description,
-  }))
+  try {
+    const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+      input,
+      includedRegionCodes: [region],
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (suggestions as any[])
+      .filter((s: any) => s.placePrediction)
+      .map((s: any) => ({
+        placeId: s.placePrediction.placeId ?? '',
+        name: s.placePrediction.mainText?.text ?? s.placePrediction.text?.text ?? '',
+        address: s.placePrediction.text?.text ?? '',
+      }))
+  } catch {
+    return []
+  }
 }
 
 /**
  * Mekan arama — SelectionPage'deki arama kutusu için.
+ * Yeni Place.searchByText API kullanır.
  */
 export async function searchPlaces(
   query: string,
@@ -292,56 +250,49 @@ export async function searchPlaces(
 ): Promise<PlaceDetails[]> {
   if (!API_KEY || !query.trim()) return []
 
-  await getLoader().load()
+  const placesLib = await getPlacesLib()
+  const Place = placesLib.Place
 
-  const service = new google.maps.places.PlacesService(document.createElement('div'))
+  try {
+    const { places } = await Place.searchByText({
+      textQuery: `${query} İstanbul`,
+      fields: [
+        'id', 'displayName', 'formattedAddress', 'location',
+        'rating', 'userRatingCount', 'photos', 'types', 'regularOpeningHours',
+      ],
+      locationBias: { center: { lat, lng }, radius: 10000 },
+      language: 'tr',
+      maxResultCount: 8,
+    })
 
-  return new Promise((resolve) => {
-    service.textSearch(
-      {
-        query: `${query} İstanbul`,
-        location: { lat, lng },
-        radius: 10000,
-        language: 'tr',
-      },
-      (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          // Kara listedeki mekanları filtrele
-          const filtered = results.filter((p) => {
-            const types = p.types ?? []
-            return !types.some((t) => BLOCKED_TYPES.has(t))
-          })
-          resolve(filtered.slice(0, 8).map(mapToPlaceDetails))
-        } else {
-          resolve([])
-        }
-      }
-    )
-  })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (places as any[])
+      .filter((p: any) => !((p.types ?? []).some((t: string) => BLOCKED_TYPES.has(t))))
+      .map(mapPlaceToDetails)
+  } catch {
+    return []
+  }
 }
 
 /**
- * Place ID'den lat/lng çeker
+ * Place ID'den lat/lng çeker. Yeni Place.fetchFields kullanır.
  */
 export async function fetchPlaceLatLng(
   placeId: string
 ): Promise<{ lat: number; lng: number } | null> {
   if (!API_KEY || !placeId) return null
 
-  await getLoader().load()
+  const placesLib = await getPlacesLib()
+  const Place = placesLib.Place
 
-  const service = new google.maps.places.PlacesService(document.createElement('div'))
-
-  return new Promise((resolve) => {
-    service.getDetails(
-      { placeId, fields: ['geometry'] },
-      (result, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && result?.geometry?.location) {
-          resolve({ lat: result.geometry.location.lat(), lng: result.geometry.location.lng() })
-        } else {
-          resolve(null)
-        }
-      }
-    )
-  })
+  try {
+    const place = new Place({ id: placeId })
+    await place.fetchFields({ fields: ['location'] })
+    if (place.location) {
+      return { lat: place.location.lat(), lng: place.location.lng() }
+    }
+    return null
+  } catch {
+    return null
+  }
 }

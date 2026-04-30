@@ -1,15 +1,13 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
 import type { ItineraryStep } from '@/types'
-
-// TODO: Connect Google Maps API here — API anahtarı Vercel env'den okunur
+import { getGoogleMapsLoader, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
 
 interface Props {
   steps: ItineraryStep[]
 }
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
+const API_KEY = GOOGLE_MAPS_API_KEY
 
 export default function MapView({ steps }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -17,12 +15,8 @@ export default function MapView({ steps }: Props) {
   useEffect(() => {
     if (!API_KEY || !mapRef.current || steps.length === 0) return
 
-    const loader = new Loader({
-      apiKey: API_KEY,
-      version: 'weekly',
-    })
-
-    loader.load().then(() => {
+    // Paylaşılan singleton Loader — googlePlaces.ts ile çakışmaz
+    getGoogleMapsLoader().load().then(() => {
       if (!mapRef.current) return
 
       const center = {
