@@ -1,7 +1,7 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef } from 'react'
 import type { ItineraryStep } from '@/types'
-import { getGoogleMapsLoader, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
+import { loadGoogleMaps, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
 
 interface Props {
   steps: ItineraryStep[]
@@ -15,8 +15,8 @@ export default function MapView({ steps }: Props) {
   useEffect(() => {
     if (!API_KEY || !mapRef.current || steps.length === 0) return
 
-    // Paylaşılan singleton Loader — googlePlaces.ts ile çakışmaz
-    getGoogleMapsLoader().load().then(() => {
+    // @googlemaps/js-api-loader kullanmaz — Loader çakışması olmaz
+    loadGoogleMaps().then(() => {
       if (!mapRef.current) return
 
       const center = {

@@ -1,7 +1,7 @@
 /// <reference types="google.maps" />
 import type { PlaceDetails } from '@/types'
 import type { CompanionType } from '@/types/form'
-import { getGoogleMapsLoader, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
+import { loadPlacesLib, GOOGLE_MAPS_API_KEY } from '@/utils/googleMapsLoader'
 
 const API_KEY = GOOGLE_MAPS_API_KEY
 
@@ -92,8 +92,7 @@ function calculateScore(place: PlaceDetails, visitedBefore: boolean): number {
 // ── Yeni Places API kütüphanesini yükler ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getPlacesLib(): Promise<any> {
-  await getGoogleMapsLoader().load()
-  return google.maps.importLibrary('places')
+  return loadPlacesLib()
 }
 
 // ── Yeni Place nesnesini PlaceDetails'e dönüştürür ──
