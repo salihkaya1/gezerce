@@ -18,23 +18,58 @@ function getLoader(): Loader {
   return loaderInstance
 }
 
-// ── Kullanıcı profiline göre İZİN VERİLEN kategoriler ──
-// Sadece bu türlere ait mekanlar gösterilir; geri kalanı filtrelenir.
+// ── KARA LİSTE — Bu türlerden biri varsa mekan ASLA gösterilmez ──
+const BLOCKED_TYPES = new Set([
+  'lodging', 'hotel', 'motel', 'hostel',
+  'gas_station', 'car_dealer', 'car_rental', 'car_repair', 'car_wash',
+  'grocery_or_supermarket', 'supermarket', 'convenience_store',
+  'bank', 'atm', 'finance',
+  'pharmacy', 'drugstore', 'hospital', 'doctor', 'dentist', 'health',
+  'insurance_agency', 'lawyer', 'accounting', 'real_estate_agency',
+  'laundry', 'locksmith', 'plumber', 'electrician',
+  'post_office', 'local_government_office', 'courthouse',
+  'funeral_home', 'cemetery',
+  'storage', 'moving_company',
+  'parking', 'transit_station', 'bus_station', 'train_station', 'subway_station',
+  'veterinary_care', 'pet_store',
+  'school', 'university', 'primary_school', 'secondary_school',
+  'church', 'hindu_temple', 'synagogue', // cami hariç (aile profili için)
+])
+
+// ── Profil bazlı İZİN VERİLEN türler ──
 const ALLOWED_TYPES: Record<CompanionType, Set<string>> = {
   sevgili: new Set(['restaurant', 'cafe', 'art_gallery', 'museum', 'park', 'tourist_attraction']),
-  aile:    new Set(['museum', 'park', 'tourist_attraction', 'restaurant', 'zoo']),
-  arkadas: new Set(['restaurant', 'cafe', 'night_club', 'tourist_attraction']),
-  cocuklu: new Set(['park', 'zoo', 'amusement_park', 'museum']),
-  yalniz:  new Set(['museum', 'cafe', 'art_gallery', 'park', 'tourist_attraction']),
+  aile:    new Set(['museum', 'park', 'tourist_attraction', 'restaurant', 'zoo', 'mosque', 'aquarium']),
+  arkadas: new Set(['restaurant', 'cafe', 'night_club', 'tourist_attraction', 'bar', 'bowling_alley']),
+  cocuklu: new Set(['park', 'zoo', 'amusement_park', 'museum', 'aquarium']),
+  yalniz:  new Set(['museum', 'cafe', 'art_gallery', 'park', 'tourist_attraction', 'book_store', 'library']),
 }
 
-// Google'a gönderilecek arama türleri (her profil için 3 tane)
+// ── Google'a gönderilecek arama türleri — profil başına TÜM türler ──
 const SEARCH_TYPES: Record<CompanionType, string[]> = {
-  sevgili: ['restaurant', 'cafe', 'tourist_attraction'],
-  aile:    ['museum', 'tourist_attraction', 'zoo'],
-  arkadas: ['restaurant', 'cafe', 'tourist_attraction'],
-  cocuklu: ['park', 'zoo', 'museum'],
-  yalniz:  ['museum', 'cafe', 'tourist_attraction'],
+  sevgili: ['restaurant', 'cafe', 'art_gallery', 'museum', 'park', 'tourist_attraction'],
+  aile:    ['museum', 'park', 'tourist_attraction', 'restaurant', 'zoo', 'mosque'],
+  arkadas: ['restaurant', 'cafe', 'night_club', 'tourist_attraction', 'bar'],
+  cocuklu: ['park', 'zoo', 'amusement_park', 'museum', 'aquarium'],
+  yalniz:  ['museum', 'cafe', 'art_gallery', 'park', 'tourist_attraction', 'book_store'],
+}
+
+// ── Meşhur turistik yerler (visitedBefore = true ise alta at) ──
+const FAMOUS_TOURIST_SPOTS = new Set([
+  'ayasofya', 'hagia sophia', 'topkapı', 'topkapi', 'sultanahmet',
+  'blue mosque', 'galata', 'kapalıçarşı', 'grand bazaar', 'kapali carsi',
+  'dolmabahçe', 'dolmabahce', 'yerebatan', 'basilica cistern',
+  'istiklal', 'taksim', 'kız kulesi', 'maiden tower',
+  'süleymaniye', 'suleymaniye', 'eyüp sultan', 'eyup sultan',
+  'rumeli hisarı', 'rumeli hisari', 'miniatürk', 'miniaturk',
+])
+
+function isFamousSpot(name: string): boolean {
+  const lower = name.toLowerCase()
+  for (const famous of FAMOUS_TOURIST_SPOTS) {
+    if (lower.includes(famous)) return true
+  }
+  return false
 }
 
 function mapToPlaceDetails(place: google.maps.places.PlaceResult): PlaceDetails {
@@ -60,10 +95,14 @@ function mapToPlaceDetails(place: google.maps.places.PlaceResult): PlaceDetails 
 }
 
 /**
- * Bir mekanın izin verilen kategoride olup olmadığını kontrol eder.
- * Mekanın types[] dizisinden en az biri allowedSet içinde olmalı.
+ * Mekanın gösterilmesinin uygun olup olmadığını kontrol eder.
+ * 1) Kara listedeki türlerden biri varsa → REDDET
+ * 2) İzin verilen türlerden en az biri varsa → KABUL
  */
-function isAllowedType(placeTypes: string[], allowedSet: Set<string>): boolean {
+function isPlaceAllowed(placeTypes: string[], allowedSet: Set<string>): boolean {
+  // Kara liste kontrolü — biri bile varsa reddet
+  if (placeTypes.some((t) => BLOCKED_TYPES.has(t))) return false
+  // Beyaz liste kontrolü — en az biri olmalı
   return placeTypes.some((t) => allowedSet.has(t))
 }
 
@@ -83,13 +122,64 @@ function nearbySearchPromise(
 }
 
 /**
+ * Akıllı sıralama skoru hesaplar.
+ *
+ * visitedBefore = false (ilk kez): Turistik yerler + yüksek puan öne çıkar
+ * visitedBefore = true (tekrar): Yerel/az bilinen yerler öne, meşhurlar alta
+ */
+function calculateScore(place: PlaceDetails, visitedBefore: boolean): number {
+  let score = 0
+
+  const famous = isFamousSpot(place.name)
+  const isTouristAttraction = place.types.includes('tourist_attraction')
+  const reviewCount = place.userRatingsTotal ?? 0
+
+  if (visitedBefore) {
+    // ── Tekrar gelen kullanıcı: yerel yerler öne ──
+    // Meşhur yerler ceza alır
+    if (famous) score -= 50
+    if (isTouristAttraction && reviewCount > 50000) score -= 30
+
+    // Orta popülerlik bonus (1000-30000 yorum arası = yerel ama kaliteli)
+    if (reviewCount >= 1000 && reviewCount <= 30000) score += 20
+    if (reviewCount < 5000) score += 10
+
+    // Puan hala önemli ama daha az ağırlıklı
+    score += place.rating * 5
+  } else {
+    // ── İlk kez gelen kullanıcı: turistik yerler öne ──
+    if (famous) score += 30
+    if (isTouristAttraction) score += 20
+
+    // Popülerlik bonus
+    if (reviewCount > 50000) score += 15
+    else if (reviewCount > 10000) score += 10
+
+    // Puan en önemli faktör
+    score += place.rating * 10
+  }
+
+  // Açık mekan bonus
+  if (place.isOpen === true) score += 5
+
+  // Fotoğrafı olan mekan bonus
+  if (place.photos.length > 0) score += 3
+
+  return score
+}
+
+/**
  * Verilen konum etrafındaki mekanları companion type'a göre getirir.
- * Sadece izin verilen kategorilerdeki mekanlar döner.
+ * - Tüm kategorilerde ayrı ayrı arama yapar
+ * - Kara listeye göre filtreler
+ * - visitedBefore'a göre akıllı sıralar
+ * - En az 30 mekan döndürmeye çalışır
  */
 export async function fetchNearbyPlaces(
   lat: number,
   lng: number,
   companionType: CompanionType = 'yalniz',
+  visitedBefore = false,
   radius = 5000
 ): Promise<PlaceDetails[]> {
   if (!API_KEY) return []
@@ -100,7 +190,7 @@ export async function fetchNearbyPlaces(
   const searchTypes = SEARCH_TYPES[companionType] ?? SEARCH_TYPES.yalniz
   const allowedSet = ALLOWED_TYPES[companionType] ?? ALLOWED_TYPES.yalniz
 
-  // Paralel arama
+  // ── Tüm kategorilerde paralel arama ──
   const searches = searchTypes.map((type) =>
     nearbySearchPromise(service, {
       location: { lat, lng },
@@ -120,17 +210,45 @@ export async function fetchNearbyPlaces(
       if (!id || seenIds.has(id)) continue
 
       const types = place.types ?? []
-      // ── Kesin filtreleme: izin verilen kategoride değilse ATLA ──
-      if (!isAllowedType(types, allowedSet)) continue
+      if (!isPlaceAllowed(types, allowedSet)) continue
 
       seenIds.add(id)
       allResults.push(mapToPlaceDetails(place))
     }
   }
 
-  // Puana göre sırala, en iyi 12 mekan
-  allResults.sort((a, b) => b.rating - a.rating)
-  return allResults.slice(0, 12)
+  // ── Yeterli sonuç yoksa daha geniş yarıçapla tekrar ara ──
+  if (allResults.length < 20) {
+    const extraTypes = searchTypes.slice(0, 3)
+    const extraSearches = extraTypes.map((type) =>
+      nearbySearchPromise(service, {
+        location: { lat, lng },
+        radius: radius * 2, // 10km yarıçap
+        type: type as string,
+        language: 'tr',
+      })
+    )
+
+    const extraResults = await Promise.all(extraSearches)
+    for (const results of extraResults) {
+      for (const place of results) {
+        const id = place.place_id
+        if (!id || seenIds.has(id)) continue
+
+        const types = place.types ?? []
+        if (!isPlaceAllowed(types, allowedSet)) continue
+
+        seenIds.add(id)
+        allResults.push(mapToPlaceDetails(place))
+      }
+    }
+  }
+
+  // ── Akıllı sıralama ──
+  allResults.sort((a, b) => calculateScore(b, visitedBefore) - calculateScore(a, visitedBefore))
+
+  // En fazla 36 mekan döndür (6 sütun × 6 satır veya 2×18)
+  return allResults.slice(0, 36)
 }
 
 export interface PlaceSuggestion {
@@ -166,7 +284,6 @@ export async function fetchPlaceSuggestions(
 
 /**
  * Mekan arama — SelectionPage'deki arama kutusu için.
- * Text search ile mekan bulur ve detaylarını döner.
  */
 export async function searchPlaces(
   query: string,
@@ -189,7 +306,12 @@ export async function searchPlaces(
       },
       (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          resolve(results.slice(0, 5).map(mapToPlaceDetails))
+          // Kara listedeki mekanları filtrele
+          const filtered = results.filter((p) => {
+            const types = p.types ?? []
+            return !types.some((t) => BLOCKED_TYPES.has(t))
+          })
+          resolve(filtered.slice(0, 8).map(mapToPlaceDetails))
         } else {
           resolve([])
         }
@@ -199,7 +321,7 @@ export async function searchPlaces(
 }
 
 /**
- * Place ID'den lat/lng çeker (konum input seçimi için)
+ * Place ID'den lat/lng çeker
  */
 export async function fetchPlaceLatLng(
   placeId: string

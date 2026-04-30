@@ -71,7 +71,7 @@ export default function SelectionPage() {
         const lat = formData.startLocation?.lat || 41.0082
         const lng = formData.startLocation?.lng || 28.9784
 
-        const results = await fetchNearbyPlaces(lat, lng, formData.companionType)
+        const results = await fetchNearbyPlaces(lat, lng, formData.companionType, formData.visitedBefore)
 
         if (results.length > 0) {
           setPlaces(results)
