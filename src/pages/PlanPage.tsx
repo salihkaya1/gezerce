@@ -121,7 +121,7 @@ export default function PlanPage() {
               {currentPlan.title}
             </h1>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-              {currentPlan.itinerary.length} {t('stops')} · {currentPlan.formData.hours} {t('hours')}
+              {currentPlan.itinerary?.length ?? 0} {t('stops')} · {currentPlan.formData?.hours ?? '?'} {t('hours')}
             </p>
           </div>
 
@@ -163,19 +163,19 @@ export default function PlanPage() {
 
       {/* Harita */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mb-6">
-        <MapView steps={currentPlan.itinerary} />
+        <MapView steps={currentPlan.itinerary ?? []} />
       </motion.div>
 
       {/* Zaman çizelgesi */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
         <h2 className="font-display text-lg font-bold text-[var(--color-text)] mb-4">{t('itinerary')}</h2>
         <div className="card p-5">
-          {currentPlan.itinerary.map((step, i) => (
+          {(currentPlan.itinerary ?? []).map((step, i) => (
             <TimelineStep
-              key={step.id}
+              key={step.id ?? i}
               step={step}
               planId={currentPlan.id}
-              isLast={i === currentPlan.itinerary.length - 1}
+              isLast={i === (currentPlan.itinerary?.length ?? 0) - 1}
               index={i}
             />
           ))}
