@@ -11,6 +11,7 @@ import type { PlaceDetails } from '@/types'
 import { generatePlan } from '@/services/claudeApi'
 import { fetchCurrentWeather } from '@/services/openWeather'
 import { fetchNearbyPlaces, searchPlaces } from '@/services/googlePlaces'
+import { savePlan } from '@/services/firebase/plans'
 import toast from 'react-hot-toast'
 import { Sparkles, Search, Plus, Loader2, X } from 'lucide-react'
 
@@ -146,6 +147,8 @@ export default function SelectionPage() {
 
       const plan = await generatePlan({ formData, selectedPlaces, weather })
       setPlan(plan)
+      // Firestore'a otomatik kaydet — paylaşım linkinin çalışması için
+      savePlan(plan).catch((e) => console.warn('Plan Firestore kaydı başarısız:', e))
       navigate(`/plan/${plan.id}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('generateError')

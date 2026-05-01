@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -12,24 +12,48 @@ import { useTranslation } from 'react-i18next'
 import { Share2, Download, ArrowLeft, BookmarkPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cachePlan } from '@/utils/offlineCache'
-import { savePlan } from '@/services/firebase/plans'
+import { savePlan, getPlan, getPlanByShareCode } from '@/services/firebase/plans'
 
 export default function PlanPage() {
   const { planId, shareCode } = useParams<{ planId?: string; shareCode?: string }>()
   const resolvedId = planId ?? shareCode
   const navigate = useNavigate()
   const { t } = useTranslation('plan')
-  const { currentPlan, generating, error } = usePlanStore()
+  const { currentPlan, generating, error, setPlan, setError } = usePlanStore()
   const { addCachedPlan, isCached } = useOfflineStore()
   const { user } = useAuthStore()
+  const [loadingFromDB, setLoadingFromDB] = useState(false)
 
   useEffect(() => {
-    // Eğer resolvedId varsa ama store'da plan yoksa Firestore'dan yükle
-    if (resolvedId && !currentPlan) {
-      // TODO: Connect Firebase Firestore here
-      // fetchPlan(resolvedId).then(setPlan)
+    // Store boşsa Firestore'dan yükle (paylaşım linki senaryosu)
+    if (!resolvedId || currentPlan) return
+
+    const fetchFromFirestore = async () => {
+      setLoadingFromDB(true)
+      try {
+        let plan = null
+        if (shareCode) {
+          // /plan/share/:shareCode rotası
+          plan = await getPlanByShareCode(shareCode)
+        } else if (planId) {
+          // /plan/:planId rotası
+          plan = await getPlan(planId)
+        }
+        if (plan) {
+          setPlan(plan)
+        } else {
+          setError('Plan bulunamadı')
+        }
+      } catch (err) {
+        console.error('Firestore plan yükleme hatası:', err)
+        setError('Plan yüklenemedi')
+      } finally {
+        setLoadingFromDB(false)
+      }
     }
-  }, [resolvedId, currentPlan])
+
+    fetchFromFirestore()
+  }, [resolvedId, currentPlan, planId, shareCode, setPlan, setError])
 
   const handleShare = async () => {
     const url = `${window.location.origin}/plan/share/${currentPlan?.shareCode ?? resolvedId}`
@@ -63,15 +87,15 @@ export default function PlanPage() {
     }
   }
 
-  if (generating) {
+  if (generating || loadingFromDB) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Spinner size="lg" />
         <p className="font-display text-lg font-semibold text-[var(--color-text)]">
-          {t('generating')}
+          {loadingFromDB ? 'Plan yükleniyor...' : t('generating')}
         </p>
         <p className="text-sm text-[var(--color-text-muted)] text-center max-w-xs">
-          {t('generatingDesc')}
+          {loadingFromDB ? 'Lütfen bekleyin' : t('generatingDesc')}
         </p>
       </div>
     )
