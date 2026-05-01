@@ -104,6 +104,19 @@ function mapPlaceToDetails(place: any): PlaceDetails {
     attribution: '',
   }))
 
+  // isOpen() — yeni Places API'de PlaceOpeningHours.isOpen() güvenilir değil,
+  // try/catch ile tüm olası hataları yut, null dön.
+  let isOpen: boolean | null = null
+  try {
+    const oh = place.regularOpeningHours
+    if (oh && typeof oh.isOpen === 'function') {
+      const result = oh.isOpen()
+      isOpen = typeof result === 'boolean' ? result : null
+    }
+  } catch {
+    isOpen = null
+  }
+
   return {
     placeId: place.id ?? '',
     name: place.displayName ?? '',
@@ -112,9 +125,7 @@ function mapPlaceToDetails(place: any): PlaceDetails {
     lng: place.location?.lng() ?? 0,
     rating: place.rating ?? 0,
     userRatingsTotal: place.userRatingCount ?? 0,
-    isOpen: typeof place.regularOpeningHours?.isOpen === 'function'
-      ? (place.regularOpeningHours.isOpen() ?? null)
-      : null,
+    isOpen,
     openingHours: place.regularOpeningHours?.weekdayDescriptions ?? [],
     photos,
     types: place.types ?? [],
