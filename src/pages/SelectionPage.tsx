@@ -76,10 +76,14 @@ export default function SelectionPage() {
         if (results.length > 0) {
           setPlaces(results)
         } else {
+          // API çalışıyor ama sonuç yok → yine de demo göster
+          toast('Yakınında mekan bulunamadı, örnek mekanlar gösteriliyor', { icon: 'ℹ️' })
           setPlaces(DEMO_PLACES)
         }
       } catch (err) {
-        console.error('Mekan yükleme hatası:', err)
+        const msg = err instanceof Error ? err.message : 'Mekan yükleme hatası'
+        console.error('[SelectionPage] Mekan yükleme hatası:', err)
+        toast.error(`Mekan API hatası: ${msg}`)
         setPlaces(DEMO_PLACES)
       } finally {
         setLoadingPlaces(false)

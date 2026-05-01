@@ -120,7 +120,7 @@ function mapPlaceToDetails(place: any): PlaceDetails {
   }
 }
 
-// ── Tek tür için yakın mekan araması (yeni API) ──
+// ── Tek tür için yakın mekan araması — hata loglu ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function nearbySearchOne(Place: any, lat: number, lng: number, type: string, radius: number): Promise<any[]> {
   try {
@@ -135,14 +135,18 @@ async function nearbySearchOne(Place: any, lat: number, lng: number, type: strin
       language: 'tr',
     })
     return places ?? []
-  } catch {
+  } catch (err: unknown) {
+    // Hatayı logla — ama diğer türlerin aranmasını engelleme
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`[Places] searchNearby "${type}" başarısız:`, msg)
     return []
   }
 }
 
 /**
  * Verilen konum etrafındaki mekanları companion type'a göre getirir.
- * Yeni Places API (Place.searchNearby) kullanır — PlacesService artık yeni müşterilerde çalışmıyor.
+ * Yeni Places API (Place.searchNearby) kullanır.
+ * Hata mesajı string olarak döner — çağıran taraf kullanıcıya gösterebilir.
  */
 export async function fetchNearbyPlaces(
   lat: number,
@@ -151,10 +155,25 @@ export async function fetchNearbyPlaces(
   visitedBefore = false,
   radius = 5000
 ): Promise<PlaceDetails[]> {
-  if (!API_KEY) return []
+  if (!API_KEY) {
+    console.error('[Places] VITE_GOOGLE_MAPS_API_KEY tanımlı değil')
+    return []
+  }
 
-  const placesLib = await getPlacesLib()
-  const Place = placesLib.Place
+  let placesLib: any
+  try {
+    placesLib = await getPlacesLib()
+  } catch (err) {
+    console.error('[Places] importLibrary("places") başarısız:', err)
+    throw new Error('Google Places kütüphanesi yüklenemedi')
+  }
+
+  const Place = placesLib?.Place
+  if (!Place || typeof Place.searchNearby !== 'function') {
+    console.error('[Places] Place.searchNearby mevcut değil. Google Cloud Console\'da "Places API (New)" etkinleştirilmeli.')
+    throw new Error('Places API (New) etkin değil — Google Cloud Console\'u kontrol edin')
+  }
+
   const searchTypes = SEARCH_TYPES[companionType] ?? SEARCH_TYPES.yalniz
   const allowedSet = ALLOWED_TYPES[companionType] ?? ALLOWED_TYPES.yalniz
 
@@ -194,6 +213,7 @@ export async function fetchNearbyPlaces(
     }
   }
 
+  console.log(`[Places] Toplam ${allResults.length} mekan bulundu`)
   allResults.sort((a, b) => calculateScore(b, visitedBefore) - calculateScore(a, visitedBefore))
   return allResults.slice(0, 36)
 }
