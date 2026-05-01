@@ -4,13 +4,16 @@ const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 
 let _loadPromise: Promise<void> | null = null
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const win = window as any
+
 /**
  * Google Maps JS Bootstrap'i bir kez yükler — @googlemaps/js-api-loader KULLANMAZ.
  * Loader singleton çakışması ("Loader must not be called again") ortadan kalkar.
  */
 export function loadGoogleMaps(): Promise<void> {
-  // Zaten yüklenmiş
-  if (typeof google !== 'undefined' && google.maps?.importLibrary) {
+  // Zaten yüklenmiş mi kontrol et
+  if (typeof google !== 'undefined' && google.maps) {
     return (_loadPromise = _loadPromise ?? Promise.resolve())
   }
 
@@ -18,9 +21,10 @@ export function loadGoogleMaps(): Promise<void> {
 
   _loadPromise = new Promise<void>((resolve, reject) => {
     const callbackName = '__gezerce_maps_init__'
-    ;(window as Record<string, unknown>)[callbackName] = () => {
+
+    win[callbackName] = () => {
       resolve()
-      delete (window as Record<string, unknown>)[callbackName]
+      delete win[callbackName]
     }
 
     const script = document.createElement('script')
