@@ -112,7 +112,9 @@ function mapPlaceToDetails(place: any): PlaceDetails {
     lng: place.location?.lng() ?? 0,
     rating: place.rating ?? 0,
     userRatingsTotal: place.userRatingCount ?? 0,
-    isOpen: place.regularOpeningHours?.isOpen() ?? null,
+    isOpen: typeof place.regularOpeningHours?.isOpen === 'function'
+      ? (place.regularOpeningHours.isOpen() ?? null)
+      : null,
     openingHours: place.regularOpeningHours?.weekdayDescriptions ?? [],
     photos,
     types: place.types ?? [],
